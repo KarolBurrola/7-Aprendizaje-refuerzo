@@ -16,7 +16,7 @@ class BlackJack(MDPsim):
         """
         self.estados = [
             (s, c, a)
-            for s in range(12, 22)
+            for s in range(4, 22)
             for c in range(1, 11)
             for a in [True, False]
         ]
@@ -96,41 +96,109 @@ class BlackJack(MDPsim):
         pedir = 1
         return [plantarse, pedir]
 
+    def mejor_suma_crupier(self):
+        """
+        Calcula la suma óptima del crupier considerando que los ases
+        pueden valer 1 u 11 (se usan como 11 mientras no excedan 21).
+        """
+        valores = [c for c, v in self.mazo_crupier]
+        suma = sum(valores)
+        num_ases = valores.count(1)
+        while suma + 10 <= 21 and num_ases > 0:
+            suma += 10
+            num_ases -= 1
+        return suma
+
+    def turno_crupier(self):
+        """
+        Pide carta mientras su suma sea menor a 17 y retorna la suma final del crupier.
+        """
+        while self.mejor_suma_crupier() < 17:
+            self.mazo_crupier = self.agregar_carta(self.mazo_crupier, self.reparte_carta())
+        return self.mejor_suma_crupier()
+
     def recompensa(self, s, a, s_):
-        # TODO: implementar la recompensa del blackjack
-        raise NotImplementedError("Implementa la recompensa del blackjack")
+        """
+        La recompensa en cada estado no terminal es 0.
+
+        Para estados terminales:
+        +1: El jugador gana.
+        0: Empate (Push).
+        -1: El jugador pierde o se pasa (Bust).
+        +1.5: Victoria por Blackjack natural (21 con las dos primeras cartas).
+        """
+        if not self.es_terminal(s_):
+            return 0
+
+        player_sum = s_[0]
+
+        if player_sum > 21:
+            return -1
+
+        dealer_sum = s_[1]
+
+        if self.natural:
+            return 1.5
+
+        if dealer_sum > 21 or player_sum > dealer_sum:
+            return 1
+        elif player_sum == dealer_sum:
+            return 0
+        else:
+            return -1
 
     def transicion(self, s, a):
-        # TODO: implementar la transición del blackjack
-        raise NotImplementedError("Implementa la transición del blackjack")
+        """
+        Calcula la transición dado el estado actual s y la acción a.
+        Donde:
+        Si pide (a=1): Reparte una carta al jugador y actualiza la suma, si supera 21, retorna estado terminal (bust).
+        Si se planta (a=0): Ejecuta el turno del crupier y retorna estado terminal con la suma final del crupier.
+        """
+        suma, carta_crupier, as_usable = s[0], s[1], s[2]
+
+        if a == 1:
+            self.mazo_player = self.agregar_carta(self.mazo_player, self.reparte_carta())
+            nueva_as_usable = self.as_usable()
+            nueva_suma = self.sumar_mazo(self.mazo_player)
+
+            if nueva_suma > 21:
+                return (nueva_suma, carta_crupier, nueva_as_usable, True)
+            return (nueva_suma, carta_crupier, nueva_as_usable)
+
+        else:
+            dealer_final = self.turno_crupier()
+            return (suma, dealer_final, as_usable, True)
 
     def es_terminal(self, s):
-        # TODO: implementar la condición de estado terminal del blackjack
-        raise NotImplementedError("Implementa la condición de estado terminal del blackjack")
+        """
+        Un estado se considera terminal cuando la tupla contiene 4 elementos,
+        donde el cuarto valor es True, esto sucede cuando el jugador se pasa
+        de 21 (bust) o decide plantarse.
+        """
+        return len(s) == 4
 
 
 if __name__ == "__main__":
 
-    blackjack = BlackJack(gama=1, ...)  # TODO: agregar los parámetros necesarios para el blackjack
+    blackjack = BlackJack(gama=1)
 
-    # TODO: definir los parámetros de SARSA y Q-learning, luego crear las instancias
     # de cada algoritmo
-    Q_sarsa = SARSA(blackjack, alfa=..., epsilon=..., n_ep=..., n_iter=...)
-    Q_learning = Q_learning(blackjack, alfa=..., epsilon=..., n_ep=..., n_iter=...)
+    Q_sarsa = SARSA(blackjack, alfa=0.1, epsilon=0.05, n_ep=500000, n_iter=100)
+    Q_ql = Q_learning(blackjack, alfa=0.1, epsilon=0.05, n_ep=500000, n_iter=100)
 
     # Encuentra las políticas óptimas para cada algoritmo
     pi_s = PoliticaGreedy(Q_sarsa)
-    pi_q = PoliticaGreedy(Q_learning)
+    pi_q = PoliticaGreedy(Q_ql)
 
     # Imprime las políticas óptimas para cada estado no terminal
-    print("Estado".center(10) + '|' + "SARSA".center(10) + '|' + "Q-learning".center(10))
-    print("-" * 10 + '|' + "-" * 10 + '|' + "-" * 10)
+    print("Estado".center(22) + '|' + "SARSA".center(10) + '|' + "Q-learning".center(10))
+    print("-" * 22 + '|' + "-" * 10 + '|' + "-" * 10)
     for s in blackjack.estados:
         if not blackjack.es_terminal(s):
-            print(str(s).center(10) + '|'
+            print(str(s).center(22) + '|'
                   + str(pi_s(s)).center(10) + '|'
                   + str(pi_q(s)).center(10))
-    print("-" * 10 + '|' + "-" * 10 + '|' + "-" * 10)
+    print("-" * 22 + '|' + "-" * 10 + '|' + "-" * 10)
 
 """
 ****************************************************************************************
