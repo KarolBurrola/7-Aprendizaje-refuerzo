@@ -8,24 +8,30 @@ from random import random, randint
 
 class BlackJack(MDPsim):
     """
-    Clase que representa un MDP para el problema del jugador.
-    
-    El jugador tiene un capital inicial y el objetivo es llegar a un capital
-    objetivo o quedarse sin dinero.
-    
+    Clase que representa un MDP para el problema del Blackjack.
     """
     def __init__(self, gama):
-        # TODO: definir los parámetros del blackjack, agrega lo que consideres necesario
-        self.estados = None # TODO: definir los estados del blackjack
+        """
+        Inicializando variables
+        """
+        self.estados = []
+        for suma in range(12, 22):
+            for carta_crupier in range(1, 11):
+                for as_usable in [True, False]:
+                    estado = (suma, carta_crupier, as_usable)
+                    self.estados.append(estado)
+
         self.gama = gama
+        self.carta_c_oculta = None
         
     def estado_inicial(self):
         # TODO: implementar el estado inicial del blackjack
         raise NotImplementedError("Implementa el estado inicial del blackjack")
     
     def acciones_legales(self, s):
-        # TODO: implementar las acciones legales del blackjack
-        raise NotImplementedError("Implementa las acciones legales del blackjack")
+        plantarse = 0
+        pedir = 1
+        return [plantarse, pedir]
     
     def recompensa(self, s, a, s_):
         # TODO: implementar la recompensa del blackjack
