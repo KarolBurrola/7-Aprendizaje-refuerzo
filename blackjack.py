@@ -182,7 +182,6 @@ if __name__ == "__main__":
 
     blackjack = BlackJack(gama=1)
 
-    # de cada algoritmo
     Q_sarsa = SARSA(blackjack, alfa=0.1, epsilon=0.05, n_ep=500000, n_iter=100)
     Q_ql = Q_learning(blackjack, alfa=0.1, epsilon=0.05, n_ep=500000, n_iter=100)
 
