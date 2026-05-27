@@ -204,20 +204,83 @@ if __name__ == "__main__":
 ****************************************************************************************
 Responde las siguientes preguntas:
 
-1. ¿Cuáles son los estados, acciones, recompensas y transiciones en el problema del 
-    blackjack?  
+1. ¿Cuáles son los estados, acciones, recompensas y transiciones en el problema del blackjack?  
+Estados: Una tupla de 3 elementos compuesta por: suma_jugador, carta_visible_crupier, as_usable.
+Donde la suma_jugador va de 4 a 21 en la implementación, aunque los estados relevantes para decisiones no triviales 
+son de 12 a 21 (con suma menor a 12 siempre conviene pedir sin importar nada más), carta_visible_crupier va de 1 al 10
+y as_usable es (True/False). La cardinalidad teórica del problema es 10 x 10 x 2 = 200 estados (sumas 12–21), pero en 
+la implementación se amplió a 18 x 10 x 2 = 360 para cubrir sumas desde 4 y evitar errores durante el entrenamiento.
 
-2. ¿Cómo se pueden representar los estados del blackjack de manera eficiente para el 
-    aprendizaje por refuerzo?
+Acciones: Solo hay dos posibles, plantarse que la tomamos como un equivalente a 0, y pedir que la tomamos como 1
+
+Recompensas:
+La recompensa en cada estado no terminal es 0.
+Para estados terminales:
++1: El jugador gana.
+0: Empate (Push).
+-1: El jugador pierde o se pasa (Bust).
++1.5: Victoria por Blackjack natural (21 con las dos primeras cartas).
+
+Transiciones: 
+Si pide (a=1): Reparte una carta al jugador y actualiza la suma, si supera 21, retorna estado terminal (bust).
+Si se planta (a=0): Ejecuta el turno del crupier y retorna estado terminal con la suma final del crupier.
+
+2. ¿Cómo se pueden representar los estados del blackjack de manera eficiente para el aprendizaje por refuerzo?
+Una tupla de 3 elementos compuesta por: suma_jugador, carta_visible_crupier, as_usable. Esta representación resulta 
+eficiente ya que almacena únicamente la información indispensable para decidir la siguiente acción, sin necesidad de 
+conservar el historial completo de cartas obtenidas. Para el jugador, basta con conocer la suma actual de su mano y 
+si dispone de un as utilizable.
+
 
 3. ¿Qué pasa si se modifica el valor de epsilón de la política epsilon-greedy?
+Epsilon controla el equilibrio entre la exploración y la explotación dentro del proceso de aprendizaje.
+La exploración consiste en que el agente pruebe acciones nuevas o aleatorias para conocer más su entorno
+y descubrir posibles mejores estrategias. En cambio, la explotación ocurre cuando el agente utiliza el 
+conocimiento adquirido para seleccionar las acciones que considera más convenientes y así maximizar su recompensa.
+
+Epsilon alto: El agente realiza una mayor exploración, eligiendo acciones aleatorias más seguido, donde esto le 
+permite conocer mejor el espacio de estados, aunque la convergencia de la política suele ser más lenta y menos 
+estable, ya que continúa explorando incluso después de haber encontrado buenas opciones.
+
+Epsilon bajo: El agente se enfoca en aprovechar el conocimiento que ya posee, eligiendo en la mayoría de los casos 
+la acción que considera mejor, esto permite que la política alcance la convergencia con mayor rapidez, sin embargo, 
+si la exploración inicial fue insuficiente, puede terminar aprendiendo una estrategia que no sea realmente la óptima.
 
 4. ¿Cómo afecta el valor de alfa en la convergencia de los algoritmos SARSA y Q-learning?
+El parámetro alfa representa la tasa de aprendizaje del agente, es decir, qué tanto influyen las nuevas experiencias 
+al momento de actualizar los valores Q, este valor determina la velocidad con la que el agente adapta su conocimiento 
+conforme interactúa con el entorno.
 
-5. ¿Cuál de los dos algoritmos, SARSA o Q-learning, consideras que es más adecuado para 
-   el problema del blackjack y por qué?
+Alfa alto: El agente prioriza fuertemente las experiencias más recientes al actualizar los valores de Q, realizando cambios 
+rápidos y significativos en sus valores aprendidos, esto acelera el proceso de aprendizaje y permite adaptarse con rapidez, 
+pero también puede provocar comportamientos inestables y variaciones constantes, ya que la información nueva tiende a 
+sustituir gran parte del conocimiento previamente adquirido.
 
-6. ¿Se puede explicar con cierta lógica del juego la política óptima encontrada por cada 
-   algoritmo? ¿Qué acciones se toman en cada estado y por qué?
+Alfa bajo: Las actualizaciones de los valores de Q se realizan de manera más lenta, dando menor importancia a cada 
+nueva experiencia obtenida por el agente, debido a esto, el proceso de aprendizaje requiere una mayor cantidad de episodios 
+para alcanzar la convergencia, sin embargo, los resultados obtenidos tienden a ser más estables, consistentes y menos propensos
+a presentar cambios bruscos.
+
+5. ¿Cuál de los dos algoritmos, SARSA o Q-learning, consideras que es más adecuado para el problema del blackjack y por qué?
+Q-learning considero que es ser más adecuado para blackjack porque aprende directamente la mejor política posible, sin depender 
+tanto de las acciones aleatorias de exploración, porque en comparación, el algoritmo de SARSA aprende siguiendo la política que 
+el agente ejecuta en cada momento, mientras que la ventaja de Q-learning es que se enfoca en maximizar la recompensa futura. 
+En este juego manejamos una cantidad de pocos movimientos por partida y requiere tomar decisiones óptimas rápidamente y Q-learning
+obtiene mejores resultados en este entorno.
+
+6. ¿Se puede explicar con cierta lógica del juego la política óptima encontrada por cada algoritmo? 
+Sí, y la política aprendida coincide con el blackjack tradicional.
+
+¿Qué acciones se toman en cada estado y por qué?
+Sumas entre 4 y 11: La mejor acción es pedir otra carta, porque no hay riesgo de exceder 21 con una carta adicional.
+Sumas entre 12 y 16: En esta situación la decisión depende de la carta visible del crupier. Si el crupier tiene una carta 
+baja, conviene plantarse porque existe una alta posibilidad de que el crupier se pase, en cambio, si muestra una carta 
+fuerte, es mejor pedir, ya que el crupier tiene más probabilidades de alcanzar una suma alta. 
+Sumas de 17 a 19 sin as utilizable: La mejor acción sin duda es plantarse, debido a que la probabilidad de pasarse es 
+elevada y la puntuación entra en juego.
+Sumas de 17 y 18 con as utilizable: La mejor acción es pedir otra carta, porque el as puede cambiar su valor a 1 
+y evitar que el jugador se pase de 21.
+Sumas de 20 y 21: La mejor acción es plantarse, porque ya se cuenta con una mano muy fuerte y seguir pidiendo es un riesgo
+
 ****************************************************************************************
 """
